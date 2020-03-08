@@ -1,9 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"io/ioutil"
 	"log"
-	"time"
+	"os"
 
 	"github.com/gorilla/websocket"
 )
@@ -21,13 +22,37 @@ func main() {
 	if len(bytes) > 0 {
 		log.Println("Body: ", string(bytes))
 	}
-	for {
-		message := "message"
+
+	go func() {
+		for {
+			messageType, r, err := conn.NextReader()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			if messageType == websocket.TextMessage {
+				bytes, err := ioutil.ReadAll(r)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				text := string(bytes)
+				log.Println("<-", text)
+			}
+		}
+	}()
+
+	sc := bufio.NewScanner(os.Stdin)
+	for sc.Scan() {
+		message := sc.Text()
 		log.Println("->", message)
 		err := conn.WriteMessage(websocket.TextMessage, []byte(message))
 		if err != nil {
 			panic(err)
 		}
-		time.Sleep(time.Second)
+	}
+
+	if sc.Err() != nil {
+		panic(err)
 	}
 }
