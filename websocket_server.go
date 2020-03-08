@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -47,6 +48,7 @@ func NewServer() *Server {
 }
 
 func (s *Server) Start() {
+	ticker := time.NewTicker(5 * time.Second)
 	for {
 		select {
 			case client := <-s.addClient:
@@ -60,6 +62,13 @@ func (s *Server) Start() {
 						continue
 					}
 					err := client.conn.WriteMessage(websocket.TextMessage, []byte(message.message))
+					if err != nil {
+						log.Println("error writing:", err)
+					}
+				}
+			case <-ticker.C:
+				for client := range s.clients {
+					err := client.conn.WriteMessage(websocket.TextMessage, []byte("Hello!"))
 					if err != nil {
 						log.Println("error writing:", err)
 					}
